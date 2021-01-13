@@ -2,6 +2,9 @@
 .Rhistory
 .Rapp.history
 
+*.geojson
+Data/*
+
 # Session Data files
 .RData
 
