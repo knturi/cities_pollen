@@ -1,0 +1,114 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+#install.packages("jsonlite")
+#install.packages("maps")
+#install.packages("GSODR")
+#install.packages("nngeo")
+library(nngeo)
+library(maps)
+library(GSODR)
+library(jsonlite)
+library(tidyverse)
+```
+
+```{r}
+# Get a sample of cities
+#cities2 <- maps::world.cities %>% 
+  #filter(country.etc == 'USA') %>% 
+  #arrange(desc(pop)) %>%
+  #select(name, lat, long) %>% 
+  #head(10)
+
+pollen_to_clean<-read.csv("Data/pollen_data.csv")
+pollen_clean<- pollen_to_clean %>% 
+  dplyr::select(ID2,SITENAME:DepthAtLoc) %>% 
+  dplyr::select(!(DepEnv:COLLECTOR))
+write_csv(pollen_clean, "Data/pollen_clean.csv")
+
+citiesjson<-read_json("Data/cities.json", simplifyVector = TRUE)
+write_csv(citiesjson, "Data/cities.csv")
+
+pollen_total_count <- pollen_clean %>% 
+  dplyr::select(ID2:POLLSUM)
+write_csv(pollen_total_count, "Data/pollen_total_count.csv")   
+
+```
+
+```{r}
+
+cities<-read_csv("Data/cities.csv")
+pollen_sum<-read_csv("Data/pollen_total_count.csv")
+pollen_sum <- pollen_sum %>% 
+  rename(longitude=LONDD, latitude=LATDD)
+
+#convert to sf class 
+pollen_sum_sf <-st_as_sf(pollen_sum, coords = c("longitude", "latitude"), 
+                 crs = 4326)
+plot(pollen_sum_sf)
+
+cities_sf <-st_as_sf(cities, coords = c("longitude", "latitude"), 
+                 crs = 4326)
+plot(cities_sf)
+# Get nearest stations for each city
+cities_pollen = st_join(cities_sf, pollen_sum_sf, join = st_nn, k = 10, maxdist = 100000)
+st_write(cities_pollen, "Data/cities_pollen.geojson", append = FALSE)
+
+```
+
+# calculate avarage pollen count per city (since the the algorithm finds several stations per city and pollen count values over years per station )
+```{r}
+cities_pollen<- st_read("Data/cities_pollen.geojson")
+Average_city_pollen<- cities_pollen %>% 
+  group_by(city, state) %>% 
+  summarize(city_pollen=mean(POLLSUM, na.rm = TRUE))
+
+Average_city_pollen %>%
+  arrange(state, city, desc(city_pollen), by_group=TRUE) %>%
+  dplyr::filter(state=="North Carolina") %>%
+  mutate(city = fct_reorder(city, desc(city_pollen))) %>% 
+  ggplot() +
+           geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen)) +
+           theme(
+             axis.text.x = element_text(
+               angle = 90, vjust = 0.5, hjust=1
+               )
+             )
+```
+
+
+# converting pollen species data to sf (spatial data) and merging to cities spatial data
+```{r}
+#convert pollen species file to sf class 
+pollen_clean <- pollen_clean %>% 
+  rename(longitude=LONDD, latitude=LATDD)
+pollen_spec_sf <-st_as_sf(pollen_clean, coords = c("longitude", "latitude"), crs = 4326)
+
+# Get nearest stations for each city
+cities_pollen_spec = st_join(cities_sf, pollen_spec_sf, join = st_nn, k = 100, maxdist = 100000)
+
+# Reshaping the merged city and pollen species data into longer format
+
+cities_pollen_spec_long <-cities_pollen_spec %>%
+  pivot_longer(ABIES:XANTHIUM, names_to="species")
+
+st_write(cities_pollen_spec_long, "Data/cities_pollen_spec_long.geojson", append = FALSE)
+```
+
+#sorting pollen species by pollen count valaue for each city and select top five species
+```{r}
+cities_pollen_spec_long<-st_read("Data/cities_pollen_spec_long.geojson")
+cities_pollen_spec_long %>%
+  filter(value!=0| value!=NA) %>% 
+  group_by(state, city) %>% 
+  arrange(state, city, desc(value), by_group=TRUE) %>% 
+  slice_max(order_by = value, n=10) %>% 
+  filter(state=="Tennessee" & city=="Memphis") %>% 
+  mutate(species = fct_reorder(species, desc(value))) %>% 
+  ggplot(aes(species, value)) + 
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
