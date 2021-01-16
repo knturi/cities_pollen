@@ -7,11 +7,18 @@ output: html_notebook
 #install.packages("maps")
 #install.packages("GSODR")
 #install.packages("nngeo")
+#devtools::install_github('rstudio/leaflet')
+#devtools::install_github('bhaskarvk/leaflet.extras')
 library(nngeo)
 library(maps)
 library(GSODR)
 library(jsonlite)
 library(tidyverse)
+library(gstat)
+library(sp)
+library(rgdal)
+library(leaflet)
+library(leaflet.extras)
 ```
 
 ```{r}
@@ -22,25 +29,25 @@ library(tidyverse)
   #select(name, lat, long) %>% 
   #head(10)
 
-pollen_to_clean<-read.csv("Data/pollen_data.csv")
+pollen_to_clean<-read.csv("US_pollen_geographical_distribution/Data/pollen_data.csv")
 pollen_clean<- pollen_to_clean %>% 
   dplyr::select(ID2,SITENAME:DepthAtLoc) %>% 
   dplyr::select(!(DepEnv:COLLECTOR))
-write_csv(pollen_clean, "Data/pollen_clean.csv")
+write.csv(pollen_clean, "US_pollen_geographical_distribution/Data/pollen_clean.csv")
 
-citiesjson<-read_json("Data/cities.json", simplifyVector = TRUE)
-write_csv(citiesjson, "Data/cities.csv")
+citiesjson<-read_json("US_pollen_geographical_distribution/Data/cities.json", simplifyVector = TRUE)
+write_csv(citiesjson, "US_pollen_geographical_distribution/Data/cities.csv")
 
 pollen_total_count <- pollen_clean %>% 
   dplyr::select(ID2:POLLSUM)
-write_csv(pollen_total_count, "Data/pollen_total_count.csv")   
+write_csv(pollen_total_count, "US_pollen_geographical_distribution/Data/pollen_total_count.csv")   
 
 ```
 
 ```{r}
 
-cities<-read_csv("Data/cities.csv")
-pollen_sum<-read_csv("Data/pollen_total_count.csv")
+cities<-read_csv("US_pollen_geographical_distribution/Data/cities.csv")
+pollen_sum<-read_csv("US_pollen_geographical_distribution/Data/pollen_total_count.csv")
 pollen_sum <- pollen_sum %>% 
   rename(longitude=LONDD, latitude=LATDD)
 
@@ -54,14 +61,20 @@ cities_sf <-st_as_sf(cities, coords = c("longitude", "latitude"),
 plot(cities_sf)
 # Get nearest stations for each city
 cities_pollen = st_join(cities_sf, pollen_sum_sf, join = st_nn, k = 10, maxdist = 100000)
-st_write(cities_pollen, "Data/cities_pollen.geojson", append = FALSE)
+st_write(cities_pollen, "US_pollen_geographical_distribution/Data/cities_pollen.geojson", append = FALSE)
+
+
+cities_pollen_nogeo<-cities_pollen %>% 
+  data.frame() %>% 
+  subset(select=c(city, state, ID2, SITENAME, ELEVATION, POLLSUM))
+write.csv(cities_pollen_nogeo, "US_pollen_geographical_distribution/Data/cities_pollen_nogeo.csv")
 
 ```
 
 # calculate avarage pollen count per city (since the the algorithm finds several stations per city and pollen count values over years per station )
 ```{r}
-cities_pollen<- st_read("Data/cities_pollen.geojson")
-Average_city_pollen<- cities_pollen %>% 
+cities_pollen_nogeo<- read.csv("US_pollen_geographical_distribution/Data/cities_pollen_nogeo.csv")
+Average_city_pollen<- cities_pollen_nogeo %>% 
   group_by(city, state) %>% 
   summarize(city_pollen=mean(POLLSUM, na.rm = TRUE))
 
@@ -94,13 +107,44 @@ cities_pollen_spec = st_join(cities_sf, pollen_spec_sf, join = st_nn, k = 100, m
 cities_pollen_spec_long <-cities_pollen_spec %>%
   pivot_longer(ABIES:XANTHIUM, names_to="species")
 
-st_write(cities_pollen_spec_long, "Data/cities_pollen_spec_long.geojson", append = FALSE)
-```
+cities_pollen_spec_long <- cities_pollen_spec_long %>%
+  mutate(species = recode(species,
+                              ABIES	= "Fir", ACNEGUNA = "Box Elder", ACPENSYL = "Striped Maple", ACRUBRUM =	"Red Maple", ACSACNUM = "Silver Maple", ACSACRUM	= "Sugar Maple", ACERX	= "Maple", ALCRISPA	= "Mountain Alder", ALRUBRA	=	"Red Alder", ALRUGOSA	= "Speckled Alder", 
+ALNUSX	= "Alder", AMBROSIA	= "Ragweed", AMORPHA	= "Leadplant", ANACARDI	= "Sumac Family", APIACEAE	= "Celery Family", 
+AQUIFOLI	= "Holly Family", ARCEUTHOBI	=  "Mistletoe", ARECACEAE	= "Palm Family", ARMERIA	= "Thrift", ARTEMISIA	= "Sagebrush/Wormwood", 
+ASTERX	= "Daisy tribe", ASTERCICHO	=  "Dandelion tribe", BETULA	= "Birch", BORAGINACEAE	= "Borage Family", BOTRYCHIUM	= "Grape Fern (spore)", BRASSICACEAE	= "Mustard Family", CACTACEAE	= "Cactus Family", CAMPANULACEA	= "Bluebells", CAPRIFOLIA	= "Honeysuckle Family", CARYA	= "Hickory", CARYOPHYLL	= "Chickweed Family", CASTANEA	= "Chestnut", CEANOTHUS	= "New Jersey Tea", CELTIS	= "Hackberry", CEPHALANTH	= "Button Bush", CERCOCAR	= "Mahogany", CHENOAMX	= "Goosefoot/Pigweed Families", CHRYSOLEP	= "Chinquapin", CORNUS	= "Dogwood", CORYLUS	= "Hazel", CUPRESSA	= "Cedar Family", CYPERACE	= "Sedge", DODECATH	= "Shooting Star", DRYAS	= "Mountain Avens", ELAEAGNX	= "Oleaster Family", EPHEDRA	= "Mexican Tea", EQUISETU	= "Horsetails", ERILEDCH	= "Leather Leaf/Labrador Tea", ERIVACCI	= "Blueberry", ERICACEX	= "Heath Family",
+ERICALES	= "Ericales Order", ERIOGONUM	= "Buckwheat", EUPHORB	= "Spurge Family", FABACEAE	= "Pea Family", FAGUS	= "Beech", 
+FRAXNIGR	= "Black Ash", FRAXPNAM	= "White/Green Ash", FRAXINUX	= "Ash", IVA	= "Marsh Elder", JUGCINER	= "Butternut", 
+JUGNIGRA	= "Balck Walnut", JUGLANSX	=  "Walnut Family", KOENISLD	=	"Koenigia islandica/Polygonaceae", LAMIACEAE	= "Mint Family", 
+LARIXPSEU	= "Larch/Douglas Fir", LARREA	= "Creosote Family", LILIACEAE	= "Lily Family", LIQUIDAM	= "Sweet Gum", LIRIODEN	= "Tulip Tree",
+LYCOANNO	= "Club moss", LYCOCLAV	= "Club moss", LYCOCOMP	= "Club moss", LYCOSELA	= "Club moss", LYCOPODX	= "Club moss", 
+MAGNOLIACE	= "Umbrella Tree Family", MALVACEAE	= "Mallow Family", MORACEAX	= "Mulberry Family", MYRICACX	= "Myrtle Family", 
+NYSSA	= "Sour Gum", ONAGRACEAE	= "Evening Primerose Family", OSMUNDACEA	= "Royal Fern Family", OSTRYCAR	= "Hop/Hornbeam/Ironwood",
+OXYRIA	= "Mountain Sorrel", PAPAVERX	= "Poppy Family", PEDICULARI	= "Louse Wort", PICGLAUC	= "White Spruce", PICMARIA	= "Black Spruce",
+PICEAX	= "Spruce", PINDIPLO	= "Hard Pines", PINHAPLO	= "Soft Pines", PINUSX	= "Pine undifferentiated", PLANTAGINX	= "Plantain Family",
+PLATANUS	= "Sycamore", POACEAE	= "Grass", POLEMONI	= "Phlox Family", POLYGONAX	= "Buckwheat undifferentiated", 
+POLYGBIS	=	"Polygonum bistortoides", POLYGONMX	= "Knotweed", POLYGVIV	= "Bistort", POLYPOD	= "Fern Family", POPULUS	= "Poplar/Aspen", 
+POTENTILLA	= "Cinquefoil", PROSOPIS	= "Mesquite", PTERIDIUM	= "Bracken", QUERCUS	= "Oak", RANUNCUL	= "Buttercup Family", 
+RHAMNACEAE	= "Buckthorn/Grape", ROSACEAX	= "Rose Family", RUBIACEAE	= "Bedstraw Family", RUBUS	= "Raspberry/Cloudberry", 
+RUMEX	= "Sorrel", RUMEOXYR	= "Sorrel/Mountainsorrel", SALIX	= "Willow", SANGUI	= "American Burnet", SARCOBATUS	= "Greasewood", 
+SXFRACER	= "Nodding Saxifrage", SXFRAHIE	=	"Saxifraga hieracifolia", SXFRAOPP	= "Purple Saxifrage", SXFRATRI	= "Prickled Saxifrage",
+SXFRAGAX	= "Saxifrage Family", SCROPHUL	= "Figwort Family", SELAGINE	= "Club moss", SHEPHERDIA	= "Soapberry", SPHAGNUM	= "Peat moss", 
+TAXODIUM	= "Cypress", TAXUS	= "Yew", THALICTRUM	= "Meadow Rue", TILIA	= "Basswood", TSUGHETE	= "Western Hemlock", 
+TSUGMERT	= "Mountain Hemlock", TSUGAX	= "Hemlock unifferentiated", ULMUS	= "Elm", URTICACX	= "Nettle Family", XANTHIUM	= "Cocklebur types"))
 
-#sorting pollen species by pollen count valaue for each city and select top five species
+st_write(cities_pollen_spec_long, "US_pollen_geographical_distribution/Data/cities_pollen_spec_long.geojson", append = FALSE)
+
+
+cities_pollen_spec_long_nogeo <- cities_pollen_spec_long %>% 
+  select(city, state, ID2, SITENAME, ELEVATION, POLLSUM, YrOfSamp, DepthAtLoc,species, value)
+
+write.csv(cities_pollen_spec_long_nogeo, "US_pollen_geographical_distribution/Data/cities_pollen_spec_long_nogeo.csv", append = FALSE)
+
+```
+#sorting pollen species by pollen count valaue for each city and select top ten species
 ```{r}
-cities_pollen_spec_long<-st_read("Data/cities_pollen_spec_long.geojson")
-cities_pollen_spec_long %>%
+cities_pollen_spec_long_nogeo<-read.csv("US_pollen_geographical_distribution/Data/cities_pollen_spec_long_nogeo.csv")
+cities_pollen_spec_long_nogeo %>%
   filter(value!=0| value!=NA) %>% 
   group_by(state, city) %>% 
   arrange(state, city, desc(value), by_group=TRUE) %>% 
@@ -112,3 +156,99 @@ cities_pollen_spec_long %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
+
+
+#now mapping time
+```{r mapWithTiles}
+pollen_spec_clean <- pollen_clean %>%
+  pivot_longer(ABIES:XANTHIUM, names_to="species") %>% 
+  dplyr::filter(value!=0| value!=NA)
+
+leaflet(width = 800, height = 600) %>%  
+  addProviderTiles("OpenStreetMap") %>%
+  addMarkers(lat = pollen_spec_clean$latitude, 
+             lng = pollen_spec_clean$longitude,
+             clusterOptions = markerClusterOptions(),
+             popup = as.character(pollen_spec_clean$value)) %>% 
+  setView(map, lng = -96,
+               lat = 37.8,
+               zoom = 5) 
+```
+```{r}
+library(maps)
+pollen_spec_clean$usa <- map.where("usa", pollen_spec_clean$longitude, pollen_spec_clean$latitude)
+
+pollen_spec_clean_usa <- pollen_spec_clean %>% 
+  drop_na(usa) %>% 
+  arrange(species, desc(value), by_group=TRUE)
+
+
+pollen_spec_clean_usa <- pollen_spec_clean_usa %>%
+  mutate(species = recode(species,
+                              ABIES	= "Fir", ACNEGUNA = "Box Elder", ACPENSYL = "Striped Maple", ACRUBRUM =	"Red Maple", ACSACNUM = "Silver Maple", ACSACRUM	= "Sugar Maple", ACERX	= "Maple", ALCRISPA	= "Mountain Alder", ALRUBRA	=	"Red Alder", ALRUGOSA	= "Speckled Alder", 
+ALNUSX	= "Alder", AMBROSIA	= "Ragweed", AMORPHA	= "Leadplant", ANACARDI	= "Sumac Family", APIACEAE	= "Celery Family", 
+AQUIFOLI	= "Holly Family", ARCEUTHOBI	=  "Mistletoe", ARECACEAE	= "Palm Family", ARMERIA	= "Thrift", ARTEMISIA	= "Sagebrush/Wormwood", 
+ASTERX	= "Daisy tribe", ASTERCICHO	=  "Dandelion tribe", BETULA	= "Birch", BORAGINACEAE	= "Borage Family", BOTRYCHIUM	= "Grape Fern (spore)", BRASSICACEAE	= "Mustard Family", CACTACEAE	= "Cactus Family", CAMPANULACEA	= "Bluebells", CAPRIFOLIA	= "Honeysuckle Family", CARYA	= "Hickory", CARYOPHYLL	= "Chickweed Family", CASTANEA	= "Chestnut", CEANOTHUS	= "New Jersey Tea", CELTIS	= "Hackberry", CEPHALANTH	= "Button Bush", CERCOCAR	= "Mahogany", CHENOAMX	= "Goosefoot/Pigweed Families", CHRYSOLEP	= "Chinquapin", CORNUS	= "Dogwood", CORYLUS	= "Hazel", CUPRESSA	= "Cedar Family", CYPERACE	= "Sedge", DODECATH	= "Shooting Star", DRYAS	= "Mountain Avens", ELAEAGNX	= "Oleaster Family", EPHEDRA	= "Mexican Tea", EQUISETU	= "Horsetails", ERILEDCH	= "Leather Leaf/Labrador Tea", ERIVACCI	= "Blueberry", ERICACEX	= "Heath Family",
+ERICALES	= "Ericales Order", ERIOGONUM	= "Buckwheat", EUPHORB	= "Spurge Family", FABACEAE	= "Pea Family", FAGUS	= "Beech", 
+FRAXNIGR	= "Black Ash", FRAXPNAM	= "White/Green Ash", FRAXINUX	= "Ash", IVA	= "Marsh Elder", JUGCINER	= "Butternut", 
+JUGNIGRA	= "Balck Walnut", JUGLANSX	=  "Walnut Family", KOENISLD	=	"Koenigia islandica/Polygonaceae", LAMIACEAE	= "Mint Family", 
+LARIXPSEU	= "Larch/Douglas Fir", LARREA	= "Creosote Family", LILIACEAE	= "Lily Family", LIQUIDAM	= "Sweet Gum", LIRIODEN	= "Tulip Tree",
+LYCOANNO	= "Club moss", LYCOCLAV	= "Club moss", LYCOCOMP	= "Club moss", LYCOSELA	= "Club moss", LYCOPODX	= "Club moss", 
+MAGNOLIACE	= "Umbrella Tree Family", MALVACEAE	= "Mallow Family", MORACEAX	= "Mulberry Family", MYRICACX	= "Myrtle Family", 
+NYSSA	= "Sour Gum", ONAGRACEAE	= "Evening Primerose Family", OSMUNDACEA	= "Royal Fern Family", OSTRYCAR	= "Hop/Hornbeam/Ironwood",
+OXYRIA	= "Mountain Sorrel", PAPAVERX	= "Poppy Family", PEDICULARI	= "Louse Wort", PICGLAUC	= "White Spruce", PICMARIA	= "Black Spruce",
+PICEAX	= "Spruce", PINDIPLO	= "Hard Pines", PINHAPLO	= "Soft Pines", PINUSX	= "Pine undifferentiated", PLANTAGINX	= "Plantain Family",
+PLATANUS	= "Sycamore", POACEAE	= "Grass", POLEMONI	= "Phlox Family", POLYGONAX	= "Buckwheat undifferentiated", 
+POLYGBIS	=	"Polygonum bistortoides", POLYGONMX	= "Knotweed", POLYGVIV	= "Bistort", POLYPOD	= "Fern Family", POPULUS	= "Poplar/Aspen", 
+POTENTILLA	= "Cinquefoil", PROSOPIS	= "Mesquite", PTERIDIUM	= "Bracken", QUERCUS	= "Oak", RANUNCUL	= "Buttercup Family", 
+RHAMNACEAE	= "Buckthorn/Grape", ROSACEAX	= "Rose Family", RUBIACEAE	= "Bedstraw Family", RUBUS	= "Raspberry/Cloudberry", 
+RUMEX	= "Sorrel", RUMEOXYR	= "Sorrel/Mountainsorrel", SALIX	= "Willow", SANGUI	= "American Burnet", SARCOBATUS	= "Greasewood", 
+SXFRACER	= "Nodding Saxifrage", SXFRAHIE	=	"Saxifraga hieracifolia", SXFRAOPP	= "Purple Saxifrage", SXFRATRI	= "Prickled Saxifrage",
+SXFRAGAX	= "Saxifrage Family", SCROPHUL	= "Figwort Family", SELAGINE	= "Club moss", SHEPHERDIA	= "Soapberry", SPHAGNUM	= "Peat moss", 
+TAXODIUM	= "Cypress", TAXUS	= "Yew", THALICTRUM	= "Meadow Rue", TILIA	= "Basswood", TSUGHETE	= "Western Hemlock", 
+TSUGMERT	= "Mountain Hemlock", TSUGAX	= "Hemlock unifferentiated", ULMUS	= "Elm", URTICACX	= "Nettle Family", XANTHIUM	= "Cocklebur types"))
+
+write.csv(pollen_spec_clean_usa, "US_pollen_geographical_distribution/Data/pollen_spec_clean_usa.csv")
+
+```
+
+```{r}
+read.csv("US_pollen_geographical_distribution/Data/pollen_spec_clean_usa.csv")
+leaflet(width = 800, height = 600) %>%  
+  addProviderTiles("OpenStreetMap") %>%
+  addAwesomeMarkers(lat = pollen_spec_clean_usa$latitude, 
+             lng = pollen_spec_clean_usa$longitude,
+             clusterOptions = markerClusterOptions(),
+             icon = awesomeIcons(icon = "flower-sharp", markerColor = 'green'),
+             popup = as.character(pollen_spec_clean_usa$species)) %>%
+  setView(map, lng = -96,
+               lat = 37.8,
+               zoom = 4) 
+```
+#map species 
+```{r}
+
+leaflet(width = 800, height = 600) %>%  
+  addProviderTiles("OpenStreetMap") %>%
+  addAwesomeMarkers(lat = pollen_spec_clean_usa$latitude, 
+             lng = pollen_spec_clean_usa$longitude,
+             clusterOptions = markerClusterOptions(),
+             icon = awesomeIcons(icon = "flower-sharp", markerColor = 'green'),
+             popup = paste0(pollen_spec_clean_usa$species,"<br/>Discharge: ", pollen_spec_clean_usa$value)) %>%
+  setView(map, lng = -96,
+               lat = 37.8,
+               zoom = 4) 
+```
+#mapping with heatmap
+```{r}
+leaflet(width = 800, height = 600) %>%  
+  addProviderTiles("OpenStreetMap") %>%
+  addHeatmap(lat = pollen_spec_clean_usa$latitude, 
+             lng = pollen_spec_clean_usa$longitude,
+             intensity=pollen_spec_clean_usa$value,
+             blur = 20, max = 0.05, radius = 20) %>%
+  setView(map, lng = -96,
+               lat = 37.8,
+               zoom = 4) 
+
+```
