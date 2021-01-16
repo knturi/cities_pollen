@@ -14,8 +14,8 @@ ui <- fluidPage(
     ),
     mainPanel(
       tabsetPanel(type = "tabs",
-                  tabPanel("Plot", plotOutput("Avragepollen"), plotOutput("Topspecies")),
-                  tabPanel("Map", leafletOutput("mymap"), p(), actionButton("recalc", "New points"))
+                  tabPanel("Plots", plotOutput("Avragepollen"), plotOutput("Topspecies")),
+                  tabPanel("Map of pollen count by species and site", leafletOutput("mymap"), p(), actionButton("recalc", "New points"))
       )
     )
   )

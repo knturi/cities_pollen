@@ -1,7 +1,7 @@
 
 library(shiny)
 server <- function(input, output) {
-  Average_city_pollen<- cities_pollen %>%
+  Average_city_pollen<- cities_pollen_nogeo %>%
     group_by(city, state) %>%
     summarize(city_pollen=mean(POLLSUM, na.rm = TRUE))
   reactive_pollen <- reactive({
@@ -12,7 +12,7 @@ server <- function(input, output) {
   }
   )
   reactive_species <- reactive({
-    cities_pollen_spec_long %>%
+    cities_pollen_spec_long_nogeo %>%
       filter(value!=0| value!=NA) %>%
       group_by(state, city) %>% 
       arrange(state, city, desc(value), by_group=TRUE) %>% 
@@ -25,22 +25,20 @@ server <- function(input, output) {
     ggplot(reactive_pollen()) + geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen),fill="steelblue") +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1) ) +
               labs(title="Cities with total pollen count",
-                   x ="Cities name", y = "Pollen count") +
-      coord_flip()
+                   x ="Cities", y = "Pollen count")
             
     )
   
   output$Topspecies <- renderPlot(
     ggplot(reactive_species(), aes(species, value)) + 
-    geom_col(fill="steelblue") +
+    geom_col(fill="green") +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
       labs(title="Top pollen species",
-           x ="Species name", y = "Pollen count") +
-      coord_flip()
+           x ="Species", y = "Pollen count")
   )
   
   output$mymap <- renderLeaflet({
-    leaflet(width = 800, height = 600, title="Pollen count sites, species, and pollen count") %>%  
+    leaflet(width = 800, height = 600) %>%  
       addProviderTiles("OpenStreetMap") %>%
       addAwesomeMarkers(lat = pollen_spec_clean_usa$latitude, 
                         lng = pollen_spec_clean_usa$longitude,
