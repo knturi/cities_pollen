@@ -1,4 +1,4 @@
-library(shiny)
+
 ui <- fluidPage(
   titlePanel("Pollen counts and top species for US cities"),
   sidebarLayout(
@@ -13,8 +13,10 @@ ui <- fluidPage(
                   selected = "Memphis")
     ),
     mainPanel(
-      plotOutput("Avragepollen"),
-      plotOutput("Topspecies")
+      tabsetPanel(type = "tabs",
+                  tabPanel("Plot", plotOutput("Avragepollen"), plotOutput("Topspecies")),
+                  tabPanel("Map", leafletOutput("mymap"), p(), actionButton("recalc", "New points"))
+      )
     )
   )
 )

@@ -19,24 +19,39 @@ server <- function(input, output) {
       slice_max(order_by = value, n=10) %>% 
       filter(state==input$state & city==input$city) %>%
       mutate(species = fct_reorder(species, desc(value)))
-  }
-  )
+  })
   
   output$Avragepollen <- renderPlot(
     ggplot(reactive_pollen()) + geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen),fill="steelblue") +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1) ) +
               labs(title="Cities with total pollen count",
-                   x ="Cities name", y = "Pollen count")
+                   x ="Cities name", y = "Pollen count") +
+      coord_flip()
             
     )
+  
   output$Topspecies <- renderPlot(
     ggplot(reactive_species(), aes(species, value)) + 
     geom_col(fill="steelblue") +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
       labs(title="Top pollen species",
-           x ="Species name", y = "Pollen count")
+           x ="Species name", y = "Pollen count") +
+      coord_flip()
   )
-}
+  
+  output$mymap <- renderLeaflet({
+    leaflet(width = 800, height = 600, title="Pollen count sites, species, and pollen count") %>%  
+      addProviderTiles("OpenStreetMap") %>%
+      addAwesomeMarkers(lat = pollen_spec_clean_usa$latitude, 
+                        lng = pollen_spec_clean_usa$longitude,
+                        clusterOptions = markerClusterOptions(),
+                        icon = awesomeIcons(icon = "flower-sharp", markerColor = 'green'),
+                        popup = paste0(pollen_spec_clean_usa$species,"<br/>Pollen count: ", pollen_spec_clean_usa$value)) %>% 
+      setView(map, lng = -96,
+              lat = 37.8,
+              zoom = 4) 
+  })
+  }
 
 # Run the application 
 #shinyApp(ui = ui, server = server)
