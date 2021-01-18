@@ -208,7 +208,7 @@ SXFRAGAX	= "Saxifrage Family", SCROPHUL	= "Figwort Family", SELAGINE	= "Club mos
 TAXODIUM	= "Cypress", TAXUS	= "Yew", THALICTRUM	= "Meadow Rue", TILIA	= "Basswood", TSUGHETE	= "Western Hemlock", 
 TSUGMERT	= "Mountain Hemlock", TSUGAX	= "Hemlock unifferentiated", ULMUS	= "Elm", URTICACX	= "Nettle Family", XANTHIUM	= "Cocklebur types"))
 
-write.csv(pollen_spec_clean_usa, "US_pollen_geographical_distribution/Data/pollen_spec_clean_usa.csv")
+write.csv(pollen_spec_clean_usa, "pollen_spec_clean_usa.csv")
 
 ```
 
