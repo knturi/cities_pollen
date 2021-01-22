@@ -3,10 +3,10 @@ ui <- fluidPage(theme = shinytheme("superhero"),
   titlePanel(h1("Pollen Counts and Species by US States and Cities")),
   sidebarLayout(
     sidebarPanel(
-      img(src = "pollenimage.png", height = 500, width = 440),
+      img(src = "pollenimage.png", height = 500, width = 450),
       
       
-      selectInput('state', 
+      selectInput('state',  
                   'Select a state',
                   choices = unique(cities_pollen$state),
                   selected = 'Tennessee'),
@@ -17,8 +17,8 @@ ui <- fluidPage(theme = shinytheme("superhero"),
     ),
     mainPanel(
       tabsetPanel(type = "tabs",
-                  tabPanel("Pollen Count by States,Cities, and Species", plotOutput("Avrg_st_pollen"), plotOutput("Avragepollen"), plotOutput("Topspecies")),
-                  tabPanel("Map of pollen count by species and site", leafletOutput("mymap"), p(), actionButton("recalc", "New points")),
+                  tabPanel("Pollen Count by States,Cities, and Species", plotOutput("Avrg_st_pollen"), br(), plotOutput("Avragepollen"), br(), plotOutput("Topspecies")),
+                  tabPanel("Map of pollen count by species and site", leafletOutput("mymap", height = 800), p(), actionButton("recalc", "New points")),
                   tabPanel("Data Sources", 
                   p("Pollen count data was extracted from Neotoma Paleoecology Database. 
                              The data was compiled from scientific publications of pollen counts throughout north America and Greenland locations from 2005-2015 by Whittemore et al. 
