@@ -8,6 +8,6 @@ library(shiny)
 library(shinythemes)
 
 #load data
-cities_pollen_spec_long_nogeo<-read.csv("cities_pollen_spec_long_nogeo.csv")
-cities_pollen<- st_read("cities_pollen_nogeo.csv")
-pollen_spec_clean_usa<- read.csv("pollen_spec_clean_usa.csv")
+cities_pollen_spec_long_nogeo<-read.csv("../Data/cities_pollen_spec_long_nogeo.csv")
+cities_pollen<- read.csv("../Data/cities_pollen_nogeo.csv")
+pollen_spec_clean_usa<- read.csv("../Data/pollen_spec_clean_usa.csv")

@@ -17,7 +17,7 @@ ui <- fluidPage(theme = shinytheme("superhero"),
     ),
     mainPanel(
       tabsetPanel(type = "tabs",
-                  tabPanel("Pollen Count by States,Cities, and Species", plotOutput("Avrg_st_pollen"), br(), plotOutput("Avragepollen"), br(), plotOutput("Topspecies")),
+                  tabPanel("Pollen Count by States,Cities, and Species", plotOutput("Avrg_st_pollen"), br(), plotOutput("Avrg_cty_pollen"), br(), plotOutput("citytopspecies")),
                   tabPanel("Map of pollen count by species and site", leafletOutput("mymap", height = 800), p(), actionButton("recalc", "New points")),
                   tabPanel("Data Sources", 
                   p("Pollen count data was extracted from Neotoma Paleoecology Database. 

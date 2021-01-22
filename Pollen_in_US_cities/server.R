@@ -2,21 +2,20 @@
 library(shiny)
 server <- function(input, output) {
   
-  Average_state_pollen<- cities_pollen_nogeo %>%
+  Average_state_pollen<- cities_pollen %>%
     group_by(state) %>%
     summarize(state_pollen=mean(POLLSUM, na.rm = TRUE))
   
-  Average_city_pollen<- cities_pollen_nogeo %>%
-    group_by(city, state) %>%
-    summarize(city_pollen=mean(POLLSUM, na.rm = TRUE))
-
   reactive_pollen <- reactive({
-    Average_city_pollen<-Average_city_pollen %>%
+    cities_pollen_spec_long_nogeo %>%
+      group_by(state, city) %>%
+      summarize(city_pollen=mean(POLLSUM, na.rm = TRUE)) %>% 
       arrange(state, city, desc(city_pollen), by_group=TRUE) %>%
       dplyr::filter(state==input$state) %>%
       mutate(city = fct_reorder(city, desc(city_pollen)))
   }
   )
+  
   reactive_species <- reactive({
     cities_pollen_spec_long_nogeo %>%
       filter(value!=0| value!=NA) %>%
@@ -34,7 +33,7 @@ server <- function(input, output) {
            x ="State", y = "Pollen count")
     )
   
-  output$Avragepollen <- renderPlot(
+  output$Avrg_cty_pollen <- renderPlot(
     ggplot(reactive_pollen()) + geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen),fill="steelblue") +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 12) ) +
               labs(title="Cities with total pollen count",
@@ -42,7 +41,7 @@ server <- function(input, output) {
             
     )
 
-  output$Topspecies <- renderPlot(
+  output$citytopspecies <- renderPlot(
     ggplot(reactive_species(), aes(species, value)) + 
     geom_col(fill="green") +
       theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 12)) +
@@ -64,5 +63,4 @@ server <- function(input, output) {
   })
   }
 
-# Run the application 
-#shinyApp(ui = ui, server = server)
+
