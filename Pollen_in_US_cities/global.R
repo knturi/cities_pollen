@@ -5,6 +5,7 @@ library(jsonlite)
 library(tidyverse)
 library(leaflet)
 library(shiny)
+library(shinythemes)
 
 #load data
 cities_pollen_spec_long_nogeo<-read.csv("cities_pollen_spec_long_nogeo.csv")

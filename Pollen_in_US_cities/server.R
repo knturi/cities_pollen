@@ -4,6 +4,11 @@ server <- function(input, output) {
   Average_city_pollen<- cities_pollen_nogeo %>%
     group_by(city, state) %>%
     summarize(city_pollen=mean(POLLSUM, na.rm = TRUE))
+  
+  Average_state_pollen<- cities_pollen_nogeo %>%
+    group_by(state) %>%
+    summarize(state_pollen=mean(POLLSUM, na.rm = TRUE))
+
   reactive_pollen <- reactive({
     Average_city_pollen<-Average_city_pollen %>%
       arrange(state, city, desc(city_pollen), by_group=TRUE) %>%
@@ -20,6 +25,14 @@ server <- function(input, output) {
       filter(state==input$state & city==input$city) %>%
       mutate(species = fct_reorder(species, desc(value)))
   })
+  
+  output$Avrg_st_pollen <- renderPlot(
+    ggplot(Average_state_pollen) + geom_col(aes(x=reorder(state, -state_pollen), y=state_pollen),fill="yellow") +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1) ) +
+      labs(title="States with total pollen count",
+           x ="State", y = "Pollen count")
+    
+  )
   
   output$Avragepollen <- renderPlot(
     ggplot(reactive_pollen()) + geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen),fill="steelblue") +
@@ -38,12 +51,12 @@ server <- function(input, output) {
   )
   
   output$mymap <- renderLeaflet({
-    leaflet(width = 800, height = 600) %>%  
+    leaflet(width = 800, height = 1000) %>%  
       addProviderTiles("OpenStreetMap") %>%
       addAwesomeMarkers(lat = pollen_spec_clean_usa$latitude, 
                         lng = pollen_spec_clean_usa$longitude,
                         clusterOptions = markerClusterOptions(),
-                        icon = awesomeIcons(icon = "flower-sharp", markerColor = 'green'),
+                        icon = awesomeIcons(icon = "flower-sharp", markerColor = 'dark green'),
                         popup = paste0(pollen_spec_clean_usa$species,"<br/>Pollen count: ", pollen_spec_clean_usa$value)) %>% 
       setView(map, lng = -96,
               lat = 37.8,
