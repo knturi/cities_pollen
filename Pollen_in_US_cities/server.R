@@ -35,23 +35,29 @@ server <- function(session, input, output) {
   
   output$Avrg_st_pollen <- renderPlot(
     ggplot(Average_state_pollen) + geom_col(aes(x=reorder(state, -state_pollen), y=state_pollen),fill="dark blue") +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
+      theme(plot.title = element_text(size = 24, face = "bold"),
+        axis.title = element_text(size = 20),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
       labs(title="States with total pollen count",
            x ="State", y = "Pollen count")
     )
   
   output$Avrg_cty_pollen <- renderPlot(
     ggplot(reactive_pollen()) + geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen),fill="steelblue") +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
+      theme(plot.title = element_text(size = 24, face = "bold"),
+        axis.title = element_text(size = 20),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
               labs(title="Cities with total pollen count",
                    x ="Cities", y = "Pollen count")
             
     )
-
+  
   output$citytopspecies <- renderPlot(
     ggplot(reactive_species(), aes(species, value)) + 
     geom_col(fill="green") +
-      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14)) +
+      theme(plot.title = element_text(size = 24, face = "bold"),
+        axis.title = element_text(size = 20),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14)) +
       labs(title="Top pollen species",
            x ="Species", y = "Pollen count")
   )
