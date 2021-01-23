@@ -30,36 +30,36 @@ server <- function(session, input, output) {
     updateSelectInput(session, 
                       "city",
                       choices = unique(cities_pollen_spec_long_nogeo[cities_pollen_spec_long_nogeo$state %in%
-                                                   input$state, "city"]))
+                                                                       input$state, "city"]))
   })
   
   output$Avrg_st_pollen <- renderPlot(
     ggplot(Average_state_pollen) + geom_col(aes(x=reorder(state, -state_pollen), y=state_pollen),fill="dark blue") +
       theme(plot.title = element_text(size = 24, face = "bold"),
-        axis.title = element_text(size = 20),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
+            axis.title = element_text(size = 20),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
       labs(title="States with total pollen count",
            x ="State", y = "Pollen count")
-    )
+  )
   
   output$Avrg_cty_pollen <- renderPlot(
     ggplot(reactive_pollen()) + geom_col(aes(x=reorder(city, -city_pollen), y=city_pollen),fill="steelblue") +
       theme(plot.title = element_text(size = 24, face = "bold"),
-        axis.title = element_text(size = 20),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
-              labs(title="Cities with total pollen count",
-                   x ="Cities", y = "Pollen count")
-            
-    )
+            axis.title = element_text(size = 20),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14) ) +
+      labs(title="Cities with total pollen count",
+           x ="Cities", y = "Pollen count")
+    
+  )
   
   output$citytopspecies <- renderPlot(
     ggplot(reactive_species(), aes(species, value)) + 
-    geom_col(fill="green") +
+      geom_col(fill="green") +
       theme(plot.title = element_text(size = 24, face = "bold"),
-        axis.title = element_text(size = 20),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14)) +
-      labs(title="Top pollen species",
-           x ="Species", y = "Pollen count")
+            axis.title = element_text(size = 20),
+            axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 14)) +
+      labs(title="Top pollen genuses",
+           x ="Genus", y = "Pollen count")
   )
   
   output$mymap <- renderLeaflet({
@@ -68,12 +68,12 @@ server <- function(session, input, output) {
       addAwesomeMarkers(lat = pollen_spec_clean_usa$latitude, 
                         lng = pollen_spec_clean_usa$longitude,
                         clusterOptions = markerClusterOptions(),
-                        icon = awesomeIcons(icon = "flower-sharp", markerColor = 'dark green'),
-                        popup = paste0(pollen_spec_clean_usa$species,"<br/>Pollen count: ", pollen_spec_clean_usa$value)) %>% 
+                        icon = awesomeIcons(icon = "flower-sharp", markerColor = 'green'),
+                        popup = paste("Genus: ", pollen_spec_clean_usa$species,"<br/>Pollen count: ", pollen_spec_clean_usa$value)) %>% 
       setView(map, lng = -96,
               lat = 37.8,
               zoom = 5) 
   })
-  }
+}
 
 
