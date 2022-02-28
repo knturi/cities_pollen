@@ -1,4 +1,4 @@
-# Title: Runny Nose and Watery Eyes: Exploring Pollen Levelsacross the United States (by Kedir Turi)
+# Title: Runny Nose and Watery Eyes: Exploring Pollen Levels across the United States (by Kedir Turi)
 
 Executive Summary: One of the criteria used to evaluate cities for livability is suitability of its environment for healthy life.  Allergy is a major acute and chronic health issue that affect people in The United States. A person considering moving to new place may think twice about the prevalence of an allergen s/he is sensitized to. This project summarizes pollen allergen information in easily accessible format in shiny application.
 
